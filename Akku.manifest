@@ -1,0 +1,10 @@
+#!r6rs ; -*- mode: scheme; coding: utf-8 -*-
+(import (akku format manifest))
+
+(akku-package ("fs-fatfs" "0.0.0-alpha.0")
+  (synopsis "FAT filesystem library")
+  (authors "Göran Weinholt <goran@weinholt.se>")
+  (license "MIT")
+  (depends ("struct-pack" "^1.1.0"))
+  (depends/dev ("chez-srfi" "^0.0.0-akku"))
+)
