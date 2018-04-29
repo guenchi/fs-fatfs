@@ -31,6 +31,8 @@
 ;;   Create directory entries
 ;;   Deallocate clusters
 ;;   Delete files
+;;   "Concurrent" reading/writing
+;;   Filesystem dirty/clean bit
 ;; Complete stat support
 
 (library (fs fatfs)
