@@ -28,7 +28,8 @@
 ;; Write support:
 ;;   Allocate clusters
 ;;   Create directory entries
-;; FAT32 support
+;;   Deallocate clusters
+;;   Delete files
 
 (library (fs fatfs)
   (export
@@ -142,6 +143,7 @@
                 (put-char p #\.))
               (cond
                 ((and (fx=? i 0) (fx=? b #x05))
+                 ;; #xe5 is used to mark unused/deleted entries
                  (put-char p #xe5))
                 (else
                  (unless (fx=? b #x20)
@@ -284,7 +286,7 @@
                 value)))))
     ((fat16)
      (let*-values (((sector-size) (fatfs-bytes/sector fatfs))
-                   ((fat-offset) (+ cluster cluster))
+                   ((fat-offset) (* cluster 2))
                    ((entry-sector entry-offset) (div-and-mod fat-offset sector-size))
                    ((FAT) (dev-copy-raw-sector (fatfs-dev fatfs)
                                                (+ (fatfs-first-FAT-sector fatfs)
@@ -297,8 +299,23 @@
                 (error 'get-next-cluster "Next cluster is marked as bad" cluster))
                (else
                 value)))))
+    ((fat32)
+     (let*-values (((sector-size) (fatfs-bytes/sector fatfs))
+                   ((fat-offset) (* cluster 4))
+                   ((entry-sector entry-offset) (div-and-mod fat-offset sector-size))
+                   ((FAT) (dev-copy-raw-sector (fatfs-dev fatfs)
+                                               (+ (fatfs-first-FAT-sector fatfs)
+                                                  entry-sector)
+                                               sector-size)))
+       (let ((value (bitwise-and (unpack "<uL" FAT entry-offset) #xfffffff)))
+         (cond ((or (fx>=? value #xffffff8) (fx<=? value #x0000001))
+                (eof-object))
+               ((fx=? value #xffffff7)
+                (error 'get-next-cluster "Next cluster is marked as bad" cluster))
+               (else
+                value)))))
     (else
-     (error 'get-next-cluster "TODO" (fatfs-type fatfs)))))
+     (error 'get-next-cluster "TODO: Unsupported fs type" (fatfs-type fatfs)))))
 
 (define (make-cluster-reader fatfs cluster)
   (define cluster-sector 0)
